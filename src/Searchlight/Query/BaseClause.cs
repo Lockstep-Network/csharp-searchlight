@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using Searchlight.Parsing;
 
 namespace Searchlight.Query

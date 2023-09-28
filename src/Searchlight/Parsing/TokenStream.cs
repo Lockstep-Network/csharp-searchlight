@@ -23,7 +23,7 @@ namespace Searchlight.Parsing
         public bool HasUnterminatedLiteral { get; set; }
         
         /// <summary>
-        /// Set to true if there is an open double quote but no close double quote
+        /// Set to true if there is an open double quote but no closing double quote
         /// </summary>
         public bool HasUnterminatedJsonKeyName { get; set; }
         

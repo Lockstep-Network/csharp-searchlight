@@ -173,7 +173,7 @@ namespace Searchlight.Parsing
                         FieldName = colName.Value, KnownFields = source.ColumnNames().ToArray(), OriginalFilter = orderBy
                     });
                 }
-                
+
                 // Was that the last token?
                 if (tokens.TokenQueue.Count == 0) break;
                 
@@ -456,7 +456,7 @@ namespace Searchlight.Parsing
 
                 // Safe syntax for an "IS NULL" expression is "column IS [NOT] NULL"
                 case OperationType.IsNull:
-                    var iN = new IsNullClause { Column = columnInfo };
+                    var isNull = new IsNullClause { Column = columnInfo };
 
                     // Allow "not" to come either before or after the "IS"
                     var next = tokens.TokenQueue.Dequeue().Value.ToUpperInvariant();
@@ -466,10 +466,10 @@ namespace Searchlight.Parsing
                         next = tokens.TokenQueue.Dequeue().Value;
                     }
 
-                    iN.Negated = negated;
-                    iN.JsonKeys = jsonKeys.ToArray();
+                    isNull.Negated = negated;
+                    isNull.JsonKeys = jsonKeys.ToArray();
                     syntax.Expect(StringConstants.NULL, next, tokens.OriginalText);
-                    return iN;
+                    return isNull;
 
                 // Safe syntax for all other recognized expressions is "column op param"
                 default:

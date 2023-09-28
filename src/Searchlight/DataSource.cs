@@ -65,22 +65,21 @@ namespace Searchlight
         /// <returns></returns>
         public DataSource WithColumn(string columnName, Type columnType)
         {
-            return WithRenamingColumn(columnName, columnName, null, columnType, null, null, false);
+            return WithRenamingColumn(new ColumnInfo(columnName, columnName, null, columnType, null, null, false));
         }
 
         /// <summary>
         /// Add a column to this definition
         /// </summary>
-        public DataSource WithRenamingColumn(string filterName, string columnName, string[] aliases, Type columnType, Type enumType, string description, bool isJson)
+        public DataSource WithRenamingColumn(ColumnInfo columnInfo)
         {
-            var columnInfo = new ColumnInfo(filterName, columnName, aliases, columnType, enumType, description, isJson);
             _columns.Add(columnInfo);
 
             // Allow the API caller to either specify either the model name or one of the aliases
-            AddName(filterName, columnInfo);
-            if (aliases != null)
+            AddName(columnInfo.FieldName, columnInfo);
+            if (columnInfo.Aliases != null)
             {
-                foreach (var alias in aliases)
+                foreach (var alias in columnInfo.Aliases)
                 {
                     AddName(alias, columnInfo);
                 }
@@ -203,7 +202,7 @@ namespace Searchlight
                             var t = filter.FieldType ?? pi.PropertyType;
                             var columnName = filter.OriginalName ?? pi.Name;
                             var aliases = filter.Aliases ?? Array.Empty<string>();
-                            src.WithRenamingColumn(pi.Name, columnName, aliases, t, filter.EnumType, filter.Description, filter.IsJson);
+                            src.WithRenamingColumn(new ColumnInfo(pi.Name, columnName, aliases, t, filter.EnumType, filter.Description, filter.IsJson));
                         }
 
                         var collection = pi.GetCustomAttributes<SearchlightCollection>().FirstOrDefault();

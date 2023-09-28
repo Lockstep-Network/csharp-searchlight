@@ -32,7 +32,7 @@ namespace Searchlight.Query
         /// <returns>True if this flag is enabled</returns>
         public bool HasFlag(string flagName)
         {
-            return (from f in Flags where String.Equals(f.Name, flagName, StringComparison.CurrentCultureIgnoreCase) select f).Any();
+            return (from f in Flags where string.Equals(f.Name, flagName, StringComparison.CurrentCultureIgnoreCase) select f).Any();
         }
 
         /// <summary>

@@ -81,6 +81,11 @@ namespace Searchlight
         public static readonly char SINGLE_QUOTE = '\'';
 
         /// <summary>
+        /// Represents a double quote character for tokenization of JSON key names
+        /// </summary>
+        public static readonly char DOUBLE_QUOTE = '"';
+
+        /// <summary>
         /// Represents an open parenthesis character for tokenization of strings
         /// </summary>
         public static readonly string OPEN_PARENTHESIS = "(";
@@ -136,6 +141,16 @@ namespace Searchlight
         /// Used for date math
         /// </summary>
         public static readonly string SUBTRACT = "-";
+
+        /// <summary>
+        /// Used to start JSON keys 
+        /// </summary>
+        public static readonly char DOT = '.';
+
+        /// <summary>
+        /// Used for escape characters 
+        /// </summary>
+        public static readonly char BACKSLASH = '\\';
 
         /// <summary>
         /// Used as shorthand for typing today's date

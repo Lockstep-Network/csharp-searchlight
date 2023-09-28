@@ -23,7 +23,7 @@ namespace Searchlight.Tests
         {
             // Parse a date time pattern
             string date = DateTime.UtcNow.ToString("yyyy-MM-dd");
-            string filters = String.Format("EffectiveDate > '{0}' OR MaintenanceDate > '{0}' OR TotalSalesEffDate > '{0}' OR SalesEffDate > '{0}' OR UseEffDate > '{0}'", date);
+            string filters = string.Format("EffectiveDate > '{0}' OR MaintenanceDate > '{0}' OR TotalSalesEffDate > '{0}' OR SalesEffDate > '{0}' OR UseEffDate > '{0}'", date);
             var list = Tokenizer.GenerateTokens(filters).TokenQueue.ToList();
             Assert.AreEqual(19, list.Count);
             Assert.AreEqual("EffectiveDate", list[0].Value);

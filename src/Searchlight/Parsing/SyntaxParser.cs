@@ -146,6 +146,18 @@ namespace Searchlight.Parsing
 
             // Okay, let's tokenize the orderBy statement and begin parsing
             var tokens = Tokenizer.GenerateTokens(orderBy);
+            
+            if (tokens.HasUnterminatedJsonKeyName)
+            {
+                syntax.AddError(new UnterminatedJsonKey()
+                {
+                    OriginalFilter = orderBy,
+                    StartPosition = tokens.LastJsonKeyBegin,
+                    ParsingType = ParsingType.OrderBy
+                });
+                return;
+            }
+            
             while (tokens.TokenQueue.Count > 0)
             {
                 var si = new SortInfo { Direction = SortDirection.Ascending };
@@ -161,13 +173,28 @@ namespace Searchlight.Parsing
                         FieldName = colName.Value, KnownFields = source.ColumnNames().ToArray(), OriginalFilter = orderBy
                     });
                 }
-
+                
                 // Was that the last token?
                 if (tokens.TokenQueue.Count == 0) break;
+                
+                // Collect JSON keys for clause if any
+                var nextToken = tokens.TokenQueue.Dequeue();
+                var jsonKeys = new List<string>();
+                while (si.Column != null && si.Column.IsJson && nextToken.Value.StartsWith("\""))
+                {
+                    jsonKeys.Add(nextToken.Value);
+                    
+                    // Was that the last token?
+                    if (tokens.TokenQueue.Count == 0) break;
+                    
+                    nextToken = tokens.TokenQueue.Dequeue();
+                }
+
+                si.JsonKeys = jsonKeys.ToArray();
 
                 // Next, we allow ASC or ASCENDING, DESC or DESCENDING, or a comma (indicating another sort).
                 // First, check for the case of a comma
-                var token = tokens.TokenQueue.Dequeue();
+                var token = nextToken;
                 if (token.Value == StringConstants.COMMA)
                 {
                     if (tokens.TokenQueue.Count == 0)
@@ -222,6 +249,16 @@ namespace Searchlight.Parsing
                 {
                     OriginalFilter = filter,
                     StartPosition = tokens.LastStringLiteralBegin 
+                });
+                return;
+            }
+            if (tokens.HasUnterminatedJsonKeyName)
+            {
+                syntax.AddError(new UnterminatedJsonKey()
+                {
+                    OriginalFilter = filter,
+                    StartPosition = tokens.LastJsonKeyBegin,
+                    ParsingType = ParsingType.Filter
                 });
                 return;
             }
@@ -349,9 +386,18 @@ namespace Searchlight.Parsing
                 return null;
             }
 
+            // Collect JSON keys for clause if any
+            var nextToken = tokens.TokenQueue.Dequeue().Value;
+            var jsonKeys = new List<string>();
+            while (columnInfo.IsJson && nextToken.StartsWith("\""))
+            {
+                jsonKeys.Add(nextToken);
+                nextToken = tokens.TokenQueue.Dequeue().Value;
+            }
+
             // Allow "NOT" tokens here
             var negated = false;
-            var operationToken = tokens.TokenQueue.Dequeue().Value.ToUpperInvariant();
+            var operationToken = nextToken.ToUpperInvariant();
             if (operationToken == StringConstants.NOT)
             {
                 negated = true;
@@ -373,7 +419,8 @@ namespace Searchlight.Parsing
                     {
                         Negated = negated,
                         Column = columnInfo,
-                        LowerValue = ParseParameter(syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens)
+                        LowerValue = ParseParameter(syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens),
+                        JsonKeys = jsonKeys.ToArray()
                     };
                     syntax.Expect(StringConstants.AND, tokens.TokenQueue.Dequeue().Value, tokens.OriginalText);
                     b.UpperValue = ParseParameter(syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens);
@@ -385,7 +432,8 @@ namespace Searchlight.Parsing
                     {
                         Column = columnInfo,
                         Negated = negated,
-                        Values = new List<IExpressionValue>()
+                        Values = new List<IExpressionValue>(),
+                        JsonKeys = jsonKeys.ToArray()
                     };
                     syntax.Expect(StringConstants.OPEN_PARENTHESIS, tokens.TokenQueue.Dequeue().Value, tokens.OriginalText);
 
@@ -419,6 +467,7 @@ namespace Searchlight.Parsing
                     }
 
                     iN.Negated = negated;
+                    iN.JsonKeys = jsonKeys.ToArray();
                     syntax.Expect(StringConstants.NULL, next, tokens.OriginalText);
                     return iN;
 
@@ -430,7 +479,8 @@ namespace Searchlight.Parsing
                         Negated = negated,
                         Operation = op,
                         Column = columnInfo,
-                        Value = ParseParameter(syntax, columnInfo, valueToken.Value, tokens)
+                        Value = ParseParameter(syntax, columnInfo, valueToken.Value, tokens),
+                        JsonKeys = jsonKeys.ToArray()
                     };
 
                     if ((c.Operation == OperationType.StartsWith || c.Operation == OperationType.EndsWith

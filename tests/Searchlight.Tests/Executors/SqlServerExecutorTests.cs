@@ -98,7 +98,6 @@ public class SqlServerExecutorTests
                                 paycheck = reader.GetDecimal("paycheck"),
                                 onduty = reader.GetBoolean("onduty"),
                                 employeeType = (EmployeeObj.EmployeeType)reader.GetInt32(5),
-                                dims = JsonConvert.DeserializeObject<Dictionary<string, object>>(reader.GetString("dims")),
                             });
                         }
                     }

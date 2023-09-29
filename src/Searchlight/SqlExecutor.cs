@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Searchlight.Exceptions;
+using Searchlight.Parsing;
 using Searchlight.Query;
 
 namespace Searchlight
@@ -63,7 +64,7 @@ namespace Searchlight
         {
             var sql = new SqlQuery() { Syntax = query };
             sql.WhereClause = RenderJoinedClauses(dialect, query.Filter, sql);
-            sql.OrderByClause = RenderOrderByClause(query.OrderBy);
+            sql.OrderByClause = RenderOrderByClause(dialect, query.OrderBy);
 
             // Sanity test - is the query too complicated to be safe to run?
             var maxParams = query.Source.MaximumParameters ?? engine.MaximumParameters ?? 0;
@@ -147,7 +148,7 @@ namespace Searchlight
             return sql;
         }
 
-        private static string RenderOrderByClause(List<SortInfo> list)
+        private static string RenderOrderByClause(SqlDialect dialect, List<SortInfo> list)
         {
             var sb = new StringBuilder();
             for (var i = 0; i < list.Count; i++)
@@ -159,7 +160,7 @@ namespace Searchlight
 
                 var sort = list[i];
                 var dir = sort.Direction == SortDirection.Ascending ? "ASC" : "DESC";
-                sb.Append($"{sort.Column.OriginalName} {dir}");
+                sb.Append($"{GetColumnNameOrJsonValue(dialect, sort.Column, sort.JsonKeys)} {dir}");
             }
 
             return sb.ToString();
@@ -209,11 +210,12 @@ namespace Searchlight
         /// <exception cref="Exception"></exception>
         private static string RenderClause(SqlDialect dialect, BaseClause clause, SqlQuery sql)
         {
+            var columnName = GetColumnNameOrJsonValue(dialect, clause.Column, clause.JsonKeys);
             switch (clause)
             {
                 case BetweenClause bc:
                     return
-                        $"{bc.Column.OriginalName} {(bc.Negated ? "NOT " : "")}BETWEEN {sql.AddParameter(bc.LowerValue.GetValue(), bc.Column.FieldType)} AND {sql.AddParameter(bc.UpperValue.GetValue(), bc.Column.FieldType)}";
+                        $"{columnName} {(bc.Negated ? "NOT " : "")}BETWEEN {sql.AddParameter(bc.LowerValue.GetValue(), bc.Column.FieldType)} AND {sql.AddParameter(bc.UpperValue.GetValue(), bc.Column.FieldType)}";
                 case CompoundClause compoundClause:
                     return $"({RenderJoinedClauses(dialect, compoundClause.Children, sql)})";
                 case CriteriaClause cc:
@@ -226,7 +228,7 @@ namespace Searchlight
                         case OperationType.LessThan:
                         case OperationType.LessThanOrEqual:
                         case OperationType.NotEqual:
-                            return RenderComparisonClause(cc.Column.OriginalName, cc.Negated, cc.Operation, sql.AddParameter(rawValue, cc.Column.FieldType));
+                            return RenderComparisonClause(dialect, cc, sql.AddParameter(rawValue, cc.Column.FieldType));
                         case OperationType.Contains:
                             return RenderLikeClause(dialect, cc, sql, rawValue, "%", "%");
                         case OperationType.StartsWith:
@@ -239,9 +241,9 @@ namespace Searchlight
                 case InClause ic:
                     var paramValues = from v in ic.Values select sql.AddParameter(v.GetValue(), ic.Column.FieldType);
                     return
-                        $"{ic.Column.OriginalName} {(ic.Negated ? "NOT " : string.Empty)}IN ({String.Join(", ", paramValues)})";
+                        $"{columnName} {(ic.Negated ? "NOT " : string.Empty)}IN ({string.Join(", ", paramValues)})";
                 case IsNullClause inc:
-                    return $"{inc.Column.OriginalName} IS {(inc.Negated ? "NOT NULL" : "NULL")}";
+                    return $"{columnName} IS {(inc.Negated ? "NOT NULL" : "NULL")}";
                 default:
                     throw new Exception("Unrecognized clause type.");
             }
@@ -257,15 +259,15 @@ namespace Searchlight
             { OperationType.GreaterThanOrEqual, new Tuple<string, string>(">=", "<") },
         };
         
-        private static string RenderComparisonClause(string column, bool negated, OperationType op, string parameter)
+        private static string RenderComparisonClause(SqlDialect dialect, CriteriaClause clause, string parameter)
         {
-            if (!CanonicalOps.TryGetValue(op, out var opstrings))
+            if (!CanonicalOps.TryGetValue(clause.Operation, out var opstrings))
             {
-                throw new Exception($"Invalid comparison type {op}");
+                throw new Exception($"Invalid comparison type {clause.Operation}");
             }
 
-            var operationSymbol = negated ? opstrings.Item2 : opstrings.Item1;
-            return $"{column} {operationSymbol} {parameter}";
+            var operationSymbol = clause.Negated ? opstrings.Item2 : opstrings.Item1;
+            return $"{GetColumnNameOrJsonValue(dialect, clause.Column, clause.JsonKeys)} {operationSymbol} {parameter}";
         }
 
         private static string RenderLikeClause(SqlDialect dialect, CriteriaClause clause, SqlQuery sql, object rawValue,
@@ -286,7 +288,7 @@ namespace Searchlight
             var notCommand = clause.Negated ? "NOT " : "";
             var likeValue = prefix + EscapeLikeValue(stringValue) + suffix;
             return
-                $"{clause.Column.OriginalName} {notCommand}{likeCommand} {sql.AddParameter(likeValue, clause.Column.FieldType)}{escapeCommand}";
+                $"{GetColumnNameOrJsonValue(dialect, clause.Column, clause.JsonKeys)} {notCommand}{likeCommand} {sql.AddParameter(likeValue, clause.Column.FieldType)}{escapeCommand}";
         }
 
         private static string EscapeLikeValue(string stringValue)
@@ -330,6 +332,25 @@ namespace Searchlight
             }
 
             return tableName;
+        }
+
+        private static string GetColumnNameOrJsonValue(SqlDialect dialect, ColumnInfo columnInfo, string[] jsonKeys)
+        {
+            var columnName = columnInfo?.OriginalName ?? string.Empty;
+            var isJson = columnInfo?.IsJson ?? false;
+            jsonKeys = jsonKeys ?? Array.Empty<string>();
+
+            switch (dialect)
+            {
+                case SqlDialect.MicrosoftSqlServer:
+                    return
+                        $"{(isJson && jsonKeys.Length > 0 ? $"JSON_VALUE({columnName}, '$.{string.Join(".", jsonKeys)}')" : columnName)}";
+                case SqlDialect.PostgreSql:
+                case SqlDialect.MySql:
+                    return columnName;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(dialect), dialect, null);
+            }
         }
     }
     /*

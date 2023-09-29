@@ -1,4 +1,6 @@
-﻿
+﻿using System;
+using Searchlight.Parsing;
+
 namespace Searchlight.Query
 {
     /// <summary>
@@ -6,6 +8,11 @@ namespace Searchlight.Query
     /// </summary>
     public class BaseClause
     {
+        /// <summary>
+        /// The field being tested
+        /// </summary>
+        public ColumnInfo Column { get; set; }
+        
         /// <summary>
         /// This value is true if the result of this test is to be inverted
         /// </summary>
@@ -16,5 +23,10 @@ namespace Searchlight.Query
         /// If this is the last clause, the conjunction is NONE.
         /// </summary>
         public ConjunctionType Conjunction { get; set; }
+
+        /// <summary>
+        /// List of all JSON keys that are being filtered on for this clause
+        /// </summary>
+        public string[] JsonKeys { get; set; } = Array.Empty<string>();
     }
 }

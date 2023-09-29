@@ -224,13 +224,13 @@ namespace Searchlight.Tests
             Assert.AreEqual(123456789123456, sql.Parameters["@p1"]);
 
             // Test the guid
-            query = _source.ParseFilter(String.Format("colguid eq '{0}'", Guid.Empty.ToString()));
+            query = _source.ParseFilter(string.Format("colguid eq '{0}'", Guid.Empty.ToString()));
             sql = query.ToSqlServerCommand();
             Assert.AreEqual("colGuid = @p1", sql.WhereClause.ToString());
             Assert.AreEqual(Guid.Empty, sql.Parameters["@p1"]);
 
             // Test the nullable guid
-            query = _source.ParseFilter(String.Format("colNullableGuid is null or colNullableGuid = '{0}'",
+            query = _source.ParseFilter(string.Format("colNullableGuid is null or colNullableGuid = '{0}'",
                 Guid.Empty.ToString()));
             sql = query.ToSqlServerCommand();
             Assert.AreEqual("colNullableGuid IS NULL OR colNullableGuid = @p1", sql.WhereClause.ToString());

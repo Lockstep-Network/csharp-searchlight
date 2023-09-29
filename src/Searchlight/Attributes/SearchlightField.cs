@@ -35,6 +35,13 @@ namespace Searchlight
         
         /// <summary>
         /// (optional) Set to true if the database column is storing JSON.
+        ///
+        /// Current limitations of using JSON columns include:
+        /// - No filtering/sorting on JSON arrays
+        /// - Supported operators are:
+        ///   - (Not) Equals
+        ///   - (Not) In
+        ///   - Is (Not) Null
         /// </summary>
         public bool IsJson { get; set; } = false;
     }

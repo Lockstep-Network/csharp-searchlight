@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
-<package >
+<package>
 	<metadata>
 		<id>Searchlight</id>
-		<version>1.0.2</version>
+		<version>2.0.0</version>
 		<title>Searchlight</title>
 		<authors>Ted Spence</authors>
 		<owners>Ted Spence</owners>
 		<license type="file">docs/LICENSE</license>
-		<projectUrl>https://github.com/tspence/csharp-searchlight</projectUrl>
+		<projectUrl>https://github.com/Lockstep-Network/csharp-searchlight</projectUrl>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<readme>docs/README.md</readme>
 		<description>
@@ -17,15 +17,14 @@
 		<summary>A friendly and readable domain specific query language for your API.</summary>
 		<icon>docs/icons8-searchlight-90.png</icon>
 		<releaseNotes>
-			# 1.0.2
-			September 10, 2023
+			# 2.0.0
+			October 5, 2023
 
-			* Added support for autocomplete.
-			* Fixed issues with handling of enum clauses in queries.
+			* Added support for SQL Server JSON columns
 		</releaseNotes>
 		<copyright>Copyright 2013 - 2023</copyright>
     	<tags>REST query language abstract syntax tree parser sql-injection protection friendly readable domain-specific DSL</tags>
-		<repository type="git" url="https://github.com/tspence/csharp-searchlight" />
+		<repository type="git" url="https://github.com/Lockstep-Network/csharp-searchlight" />
 		<dependencies>
 			<group targetFramework=".NETStandard2.0"/>
 		</dependencies>

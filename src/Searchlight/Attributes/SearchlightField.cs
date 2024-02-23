@@ -44,5 +44,14 @@ namespace Searchlight
         ///   - Is (Not) Null
         /// </summary>
         public bool IsJson { get; set; } = false;
+        
+        /// <summary>
+        /// (optional) Set to true if the database column is encrypted.
+        /// 
+        /// If the column is encrypted, the Searchlight engine will use the provided ISearchlightStringEncryptor to encrypt the value before querying.
+        /// The column must be of type string.
+        /// Encrypted columns can only use equality, nullity, or in operators.
+        /// </summary>
+        public bool IsEncrypted { get; set; } = false;
     }
 }

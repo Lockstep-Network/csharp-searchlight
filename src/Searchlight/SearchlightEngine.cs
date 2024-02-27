@@ -69,7 +69,7 @@ namespace Searchlight
         /// <summary>
         /// Encryption implementation to use for encrypted fields.
         /// </summary>
-        public ISearchlightStringEncryptor Encryptor {get; set; } = null;
+        public ISearchlightStringEncryptor Encryptor { get; set; } = null;
 
         /// <summary>
         /// Adds a new class to the engine

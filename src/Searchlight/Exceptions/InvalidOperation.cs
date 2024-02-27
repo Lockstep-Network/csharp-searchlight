@@ -12,7 +12,7 @@ namespace Searchlight.Exceptions
 
         public string FieldName { get; internal set; }
 
-        public string Operation {get; internal set; }
+        public string Operation { get; internal set; }
 
         public string ErrorMessage
         {

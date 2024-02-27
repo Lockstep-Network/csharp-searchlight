@@ -13,6 +13,13 @@ namespace Searchlight.Parsing
     /// </summary>
     public static class SyntaxParser
     {
+        private static readonly OperationType[] EncryptionOperations = new OperationType[]
+        {
+            OperationType.Equals,
+            OperationType.IsNull,
+            OperationType.In
+        };
+
         /// <summary>
         /// Shortcut for Parse using a syntax tree.
         /// </summary>
@@ -411,7 +418,7 @@ namespace Searchlight.Parsing
                 return null;
             }
             
-            if (columnInfo.IsEncrypted && (op != OperationType.Equals && op != OperationType.IsNull && op != OperationType.In))
+            if (columnInfo.IsEncrypted && !EncryptionOperations.Contains(op))
             {
                 syntax.AddError(new InvalidOperation()
                 {

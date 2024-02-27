@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Searchlight.Exceptions;
 using Searchlight.Expressions;
 using Searchlight.Tests.Models;
+using Searchlight.Encryption;
 
 namespace Searchlight.Tests
 {
@@ -542,6 +543,60 @@ namespace Searchlight.Tests
             Assert.AreEqual("InvalidValue", ex2.BadToken);
             CollectionAssert.AreEqual(new string[] { "None", "Special", "Generic" }, ex2.ExpectedTokens);
             Assert.AreEqual("The filter statement contained an unexpected token, 'InvalidValue'. Searchlight expects to find one of these next: None, Special, Generic", ex2.ErrorMessage);
+        }
+        
+        [SearchlightModel(DefaultSort = nameof(Name))]
+        public class TestEncrypted
+        {
+            [SearchlightField(IsEncrypted = true)]
+            public string Name { get; set; }
+        }
+
+        public class TestEncryptor : ISearchlightStringEncryptor
+        {
+            public string Encrypt(string plainText)
+            {
+                return "encrypted" + plainText;
+            }
+        }
+
+        [TestMethod]
+        public void Test_EncryptedField_NoEncryptionAddedToEngine()
+        {
+            var engine = new SearchlightEngine().AddClass(typeof(TestEncrypted));
+
+            var source = engine.FindTable("TestEncrypted");
+            Assert.ThrowsException<NullReferenceException>(() => source.ParseFilter("Name eq 'test'"));
+        }
+        
+        [TestMethod]
+        public void Test_EncryptedField_InvalidOperation()
+        {
+            var engine = new SearchlightEngine
+            {
+                Encryptor = new TestEncryptor()
+            }.AddClass(typeof(TestEncrypted));
+
+            var source = engine.FindTable("TestEncrypted");
+            Assert.ThrowsException<InvalidOperation>(() => source.ParseFilter("Name > 'test'"));
+        }
+
+
+        [TestMethod]
+        public void TestEncryptedFieldFilter()
+        {
+            var engine = new SearchlightEngine
+            {
+                Encryptor = new TestEncryptor()
+            }.AddClass(typeof(TestEncrypted));
+
+            var source = engine.FindTable("TestEncrypted");
+            var syntax = source.ParseFilter("Name eq 'test'");
+            
+            Assert.IsNotNull(syntax);
+            var cc = syntax.Filter[0] as CriteriaClause;
+
+            Assert.AreEqual("encryptedtest", cc.Value.GetValue());
         }
     }
 }

@@ -13,6 +13,13 @@ namespace Searchlight.Parsing
     /// </summary>
     public static class SyntaxParser
     {
+        private static readonly OperationType[] EncryptionOperations = new OperationType[]
+        {
+            OperationType.Equals,
+            OperationType.IsNull,
+            OperationType.In
+        };
+
         /// <summary>
         /// Shortcut for Parse using a syntax tree.
         /// </summary>
@@ -410,6 +417,17 @@ namespace Searchlight.Parsing
             {
                 return null;
             }
+            
+            if (columnInfo.IsEncrypted && !EncryptionOperations.Contains(op))
+            {
+                syntax.AddError(new InvalidOperation()
+                {
+                    OriginalFilter = tokens.OriginalText,
+                    FieldName = columnInfo.FieldName,
+                    Operation = op.ToString()
+                });
+                return null;
+            }
 
             switch (op)
             {
@@ -419,11 +437,11 @@ namespace Searchlight.Parsing
                     {
                         Negated = negated,
                         Column = columnInfo,
-                        LowerValue = ParseParameter(syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens),
+                        LowerValue = ParseParameter(source, syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens),
                         JsonKeys = jsonKeys.ToArray()
                     };
                     syntax.Expect(StringConstants.AND, tokens.TokenQueue.Dequeue().Value, tokens.OriginalText);
-                    b.UpperValue = ParseParameter(syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens);
+                    b.UpperValue = ParseParameter(source, syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens);
                     return b;
 
                 // Safe syntax for an "IN" expression is "column IN (param[, param][, param]...)"
@@ -441,7 +459,7 @@ namespace Searchlight.Parsing
                     {
                         while (tokens.TokenQueue.Count > 1)
                         {
-                            i.Values.Add(ParseParameter(syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens));
+                            i.Values.Add(ParseParameter(source, syntax, columnInfo, tokens.TokenQueue.Dequeue().Value, tokens));
                             var commaOrParen = tokens.TokenQueue.Dequeue();
                             syntax.Expect(StringConstants.SAFE_LIST_TOKENS, commaOrParen.Value, tokens.OriginalText);
                             if (commaOrParen.Value == StringConstants.CLOSE_PARENTHESIS) break;
@@ -479,7 +497,7 @@ namespace Searchlight.Parsing
                         Negated = negated,
                         Operation = op,
                         Column = columnInfo,
-                        Value = ParseParameter(syntax, columnInfo, valueToken.Value, tokens),
+                        Value = ParseParameter(source, syntax, columnInfo, valueToken.Value, tokens),
                         JsonKeys = jsonKeys.ToArray()
                     };
 
@@ -503,7 +521,7 @@ namespace Searchlight.Parsing
         /// <summary>
         /// Parse one value out of a token
         /// </summary>
-        private static IExpressionValue ParseParameter(SyntaxTree syntax, ColumnInfo column, string valueToken, TokenStream tokens)
+        private static IExpressionValue ParseParameter(DataSource source, SyntaxTree syntax, ColumnInfo column, string valueToken, TokenStream tokens)
         {
             var fieldType = column.FieldType;
             try
@@ -591,11 +609,26 @@ namespace Searchlight.Parsing
                     }
                 }
                 
+                if (column.IsEncrypted)
+                {
+                    if (source.Engine.Encryptor == null)
+                    {
+                        throw new NullReferenceException("No encryptor was provided to the Searchlight engine");
+                    }
+
+                    return ConstantValue.From(Convert.ChangeType(source.Engine.Encryptor.Encrypt(valueToken), fieldType));
+                }
+                
                 // All other types use a basic type changer
                 return ConstantValue.From(Convert.ChangeType(valueToken, fieldType));
             }
-            catch
+            catch (Exception ex)
             {
+                if (ex.GetType() == typeof(NullReferenceException))
+                {
+                    throw;
+                }
+                    
                 syntax.AddError(new FieldTypeMismatch {
                     FieldName = column.FieldName, 
                     FieldType = fieldType.ToString(), 

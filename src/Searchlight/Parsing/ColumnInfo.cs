@@ -17,7 +17,8 @@ namespace Searchlight.Parsing
         /// <param name="enumType">The type of the enum that the column is mapped to</param>
         /// <param name="description">A description of the column for autocomplete</param>
         /// <param name="isJson"></param>
-        public ColumnInfo(string filterName, string columnName, string[] aliases, Type columnType, Type enumType, string description, bool isJson)
+        /// <param name="isEncrypted">Is the column an encrypted column</param>
+        public ColumnInfo(string filterName, string columnName, string[] aliases, Type columnType, Type enumType, string description, bool isJson, bool isEncrypted)
         {
             FieldName = filterName;
             OriginalName = columnName;
@@ -31,6 +32,12 @@ namespace Searchlight.Parsing
             EnumType = enumType;
             Description = description;
             IsJson = isJson;
+
+            if(isEncrypted && columnType != typeof(string))
+            {
+                throw new ArgumentException($"Field {FieldName} is marked as encrypted but is not of type string. Encrypted columns must be of type string", nameof(isEncrypted));
+            }
+            IsEncrypted = isEncrypted;
         }
 
         /// <summary>
@@ -68,5 +75,10 @@ namespace Searchlight.Parsing
         /// (optional) Set to true if the database column is storing JSON.
         /// </summary>
         public bool IsJson { get; set; } = false;
+        
+        /// <summary>
+        /// (optional) Set to true if the database column is encrypted.
+        /// </summary>
+        public bool IsEncrypted { get; set; } = false;
     }
 }

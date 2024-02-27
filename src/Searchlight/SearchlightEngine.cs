@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Searchlight.Autocomplete;
+using Searchlight.Encryption;
 using Searchlight.Exceptions;
 using Searchlight.Parsing;
 using Searchlight.Query;
@@ -64,6 +65,11 @@ namespace Searchlight
         /// DEFAULT: True.
         /// </summary>
         public bool useNoCount { get; set; } = true;
+        
+        /// <summary>
+        /// Encryption implementation to use for encrypted fields.
+        /// </summary>
+        public ISearchlightStringEncryptor Encryptor { get; set; } = null;
 
         /// <summary>
         /// Adds a new class to the engine

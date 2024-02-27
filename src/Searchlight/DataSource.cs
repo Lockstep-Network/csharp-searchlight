@@ -65,7 +65,7 @@ namespace Searchlight
         /// <returns></returns>
         public DataSource WithColumn(string columnName, Type columnType)
         {
-            return WithRenamingColumn(new ColumnInfo(columnName, columnName, null, columnType, null, null, false));
+            return WithRenamingColumn(new ColumnInfo(columnName, columnName, null, columnType, null, null, false, false));
         }
 
         /// <summary>
@@ -202,7 +202,7 @@ namespace Searchlight
                             var t = filter.FieldType ?? pi.PropertyType;
                             var columnName = filter.OriginalName ?? pi.Name;
                             var aliases = filter.Aliases ?? Array.Empty<string>();
-                            src.WithRenamingColumn(new ColumnInfo(pi.Name, columnName, aliases, t, filter.EnumType, filter.Description, filter.IsJson));
+                            src.WithRenamingColumn(new ColumnInfo(pi.Name, columnName, aliases, t, filter.EnumType, filter.Description, filter.IsJson, filter.IsEncrypted));
                         }
 
                         var collection = pi.GetCustomAttributes<SearchlightCollection>().FirstOrDefault();

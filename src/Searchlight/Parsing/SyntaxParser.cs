@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
 using Searchlight.Exceptions;
 using Searchlight.Expressions;
 using Searchlight.Nesting;
@@ -592,17 +594,43 @@ namespace Searchlight.Parsing
                 // Special case for enum types
                 if (column.EnumType != null || fieldType.IsEnum)
                 {
+                    var fields = fieldType.GetFields(BindingFlags.Public | BindingFlags.Static);
+                    var enumMembers = fields.Select(f =>
+                    {
+                        var attr = f.GetCustomAttribute<EnumMemberAttribute>();
+                        if (attr != null && attr.Value != null)
+                        {
+                            return (f.Name, attr.Value);
+                        }
+                        return (null, null);
+                    }).Where(e => e.Name != null).ToList();
+
+                    var dictionary = enumMembers.ToDictionary(p => p.Value, p => p.Name);
+                    
                     try
                     {
+                        if (dictionary.TryGetValue(valueToken, out var enumValueToken))
+                        {
+                            valueToken = enumValueToken;
+                        }
                         var parsed = Enum.Parse(column.EnumType ?? fieldType, valueToken);
                         return ConstantValue.From(Convert.ChangeType(parsed, fieldType));
                     }
                     catch
                     {
+                        var expectedTokens = Enum.GetNames(column.EnumType ?? fieldType);
+                        var valueDictionary = enumMembers.ToDictionary(p => p.Name, p => p.Value);
+                        for (var i = 0; i < expectedTokens.Length; i++)
+                        {
+                            if (valueDictionary.TryGetValue(expectedTokens[i], out var newToken))
+                            {
+                                expectedTokens[i] = newToken;
+                            }
+                        }
                         syntax.AddError(new InvalidToken
                         {
                             BadToken = valueToken,
-                            ExpectedTokens = Enum.GetNames(column.EnumType ?? fieldType),
+                            ExpectedTokens = expectedTokens,
                             OriginalFilter = tokens.OriginalText,
                         });
                         return null;

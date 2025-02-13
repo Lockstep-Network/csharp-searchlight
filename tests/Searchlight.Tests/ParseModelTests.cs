@@ -2,6 +2,7 @@ using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Searchlight.Query;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Threading.Tasks;
 using Searchlight.Exceptions;
 using Searchlight.Expressions;
@@ -509,6 +510,14 @@ namespace Searchlight.Tests
             Generic = 2,
         }
         
+        public enum TestEnumAttributeValueCategory
+        {
+            [EnumMember(Value = "Not Anything")]
+            None = 0,
+            Special = 1,
+            Generic = 2,
+        }
+        
         [SearchlightModel(DefaultSort = "Name ascending")]
         public class TestClassWithEnumValues
         {
@@ -516,6 +525,8 @@ namespace Searchlight.Tests
             public string Name { get; set; }
             [SearchlightField(OriginalName = "field_category")]
             public TestEnumValueCategory Category { get; set; }
+            [SearchlightField(OriginalName = "field_category_attribute")]
+            public TestEnumAttributeValueCategory AttributeCategory { get; set; }
         }
         
         
@@ -524,11 +535,13 @@ namespace Searchlight.Tests
         {
             var source = DataSource.Create(null, typeof(TestClassWithEnumValues), AttributeMode.Strict);
             var columns = source.GetColumnDefinitions().ToArray();
-            Assert.AreEqual(2, columns.Length);
+            Assert.AreEqual(3, columns.Length);
             Assert.AreEqual("Name", columns[0].FieldName);
             Assert.AreEqual(typeof(string), columns[0].FieldType);
             Assert.AreEqual("Category", columns[1].FieldName);
             Assert.AreEqual(typeof(TestEnumValueCategory), columns[1].FieldType);
+            Assert.AreEqual("AttributeCategory", columns[2].FieldName);
+            Assert.AreEqual(typeof(TestEnumAttributeValueCategory), columns[2].FieldType);
 
             // Query for a valid category
             var syntax1 = source.ParseFilter("category = None");
@@ -537,12 +550,26 @@ namespace Searchlight.Tests
             // Query using the raw integer value, which is generally not advised but we accept it for historical reasons
             var syntax2 = source.ParseFilter("category = 0");
             Assert.IsNotNull(syntax2);
+            
+            // Query attribute value 
+            var syntax3 = source.ParseFilter("attributecategory = 'Not Anything'");
+            Assert.IsNotNull(syntax3);
+            
+            // Query non attribute value in mixed enum
+            var syntax4 = source.ParseFilter("attributecategory = Special");
+            Assert.IsNotNull(syntax4);
 
             // Query for a non-valid category
             var ex2 = Assert.ThrowsException<InvalidToken>(() => source.ParseFilter("category = InvalidValue"));
             Assert.AreEqual("InvalidValue", ex2.BadToken);
             CollectionAssert.AreEqual(new string[] { "None", "Special", "Generic" }, ex2.ExpectedTokens);
             Assert.AreEqual("The filter statement contained an unexpected token, 'InvalidValue'. Searchlight expects to find one of these next: None, Special, Generic", ex2.ErrorMessage);
+            
+            // Query for a non-valid category in attribute enum
+            var ex3 = Assert.ThrowsException<InvalidToken>(() => source.ParseFilter("attributecategory = InvalidValue"));
+            Assert.AreEqual("InvalidValue", ex3.BadToken);
+            CollectionAssert.AreEqual(new string[] { "Not Anything", "Special", "Generic" }, ex3.ExpectedTokens);
+            Assert.AreEqual("The filter statement contained an unexpected token, 'InvalidValue'. Searchlight expects to find one of these next: Not Anything, Special, Generic", ex3.ErrorMessage);
         }
         
         [SearchlightModel(DefaultSort = nameof(Name))]

@@ -21,10 +21,10 @@
     </PackageReference>
     <PackageReference Include="MySql.Data" Version="8.1.0" />
     <PackageReference Include="Npgsql" Version="7.0.4" />
-    <PackageReference Include="Testcontainers" Version="3.4.0" />
-    <PackageReference Include="Testcontainers.MsSql" Version="3.4.0" />
-    <PackageReference Include="Testcontainers.MySql" Version="3.4.0" />
-    <PackageReference Include="Testcontainers.PostgreSql" Version="3.4.0" />
+    <PackageReference Include="Testcontainers" Version="4.2.0" />
+    <PackageReference Include="Testcontainers.MsSql" Version="4.2.0" />
+    <PackageReference Include="Testcontainers.MySql" Version="4.2.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup>
